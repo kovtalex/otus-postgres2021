@@ -33,7 +33,9 @@ Ver Cluster Port Status Owner    Data directory              Log file
 
 ```bash
 sudo -u postgres psql
+```
 
+```sql
 create table test(c1 text);
 insert into test values('1');
 \q
@@ -155,7 +157,9 @@ Warning: the cluster will not be running as a systemd service. Consider using sy
 
 ```bash
 sudo -u postgres psql
+```
 
+```sql
 select c1 from test;
  c1 
 ----
@@ -232,7 +236,9 @@ Warning: the cluster will not be running as a systemd service. Consider using sy
   sudo systemctl start postgresql@13-main
 
 sudo -u postgres psql
+```
 
+```sql
 select c1 from test;
  c1 
 ----

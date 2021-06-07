@@ -52,7 +52,9 @@ CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS    
 
 ```bash
 sudo docker run -it --rm --network pg-net --name pg-client postgres:13 psql -h pg-server -U postgres
+```
 
+```sql
 create table test(i int);
 insert into test values(1);
 insert into test values(2);
@@ -97,7 +99,7 @@ sudo docker run -it --rm --network pg-net --name pg-client postgres:13 psql -h p
 
 - проверим, что данные остались на месте
 
-```bash
+```sql
 select i from test;
  i 
 ---

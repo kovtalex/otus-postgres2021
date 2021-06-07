@@ -54,7 +54,7 @@ OFF
 
 - делаем в первой сессии новую таблицу и наполняем ее данными
 
-```bash
+```sql
 create table persons(id serial, first_name text, second_name text);
 insert into persons(first_name, second_name) values('ivan', 'ivanov');
 insert into persons(first_name, second_name) values('petr', 'petrov');
@@ -69,11 +69,11 @@ select * from persons;
 (2 rows)
 ```
 
-### TRANSACTION ISOLATION LEVEL READ COMMITTED
+## TRANSACTION ISOLATION LEVEL READ COMMITTED
 
 - смотрим текущий уровень изоляции
 
-```bash
+```sql
 show transaction isolation level;
 
  transaction_isolation 
@@ -86,19 +86,19 @@ show transaction isolation level;
 
 - начанаем новую транзакцию в обеих сессиях с дефолтным (не меняя) уровнем изоляции
 
-```bash
+```sql
 begin;
 ```
 
 - в первой сессии добавляем новую запись
 
-```bash
+```sql
 insert into persons(first_name, second_name) values('sergey', 'sergeev');
 ```
 
 - делаем select * from persons во второй сессии
 
-```bash
+```sql
 select * from persons;
 
  id | first_name | second_name 
@@ -114,13 +114,13 @@ select * from persons;
 
 - завершаем первую транзакцию
 
-```bash
+```sql
 commit;
 ```
 
 - делаем select * from persons во второй сессии
 
-```bash
+```sql
 select * from persons;
 
  id | first_name | second_name 
@@ -137,15 +137,15 @@ select * from persons;
 
 - завершаем транзакцию во второй сессии
 
-```bash
+```sql
 commit;
 ```
 
-### TRANSACTION ISOLATION REPEATABLE READ
+## TRANSACTION ISOLATION REPEATABLE READ
 
 - начинаем новые, но уже **repeatable read** транзакции в обеих сессиях
 
-```bash
+```sql
 set transaction isolation level repeatable read;
 show transaction isolation level;
  transaction_isolation 
@@ -158,13 +158,13 @@ begin;
 
 - в первой сессии добавляем новую запись
 
-```bash
+```sql
 insert into persons(first_name, second_name) values('sveta', 'svetova');
 ```
 
 - делаем select * from persons во второй сессии
 
-```bash
+```sql
 select * from persons;
 
  id | first_name | second_name 
@@ -181,13 +181,13 @@ select * from persons;
 
 - завершаем первую транзакцию - commit;
 
-```bash
+```sql
 commit;
 ```
 
 - делаем select * from persons во второй сессии
 
-```bash
+```sql
 select * from persons;
 
 ----+------------+-------------
@@ -205,13 +205,13 @@ select * from persons;
 
 - завершаем вторую транзакцию
 
-```bash
+```sql
 commit;
 ```
 
 - делаем select * from persons во второй сессии
 
-```bash
+```sql
 select * from persons;
  id | first_name | second_name 
 ----+------------+-------------
