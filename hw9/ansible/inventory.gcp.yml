@@ -1,0 +1,20 @@
+---
+plugin: gcp_compute  
+projects:
+  - postgres2021-19850703 # id gcp проекта     
+auth_kind: serviceaccount     
+service_account_file: ~/infra.json # Service account json keyfile   
+        
+regions:                                
+  - europe-west1  # регион
+hostnames:
+  - name  # обозначение хостов, может быть: public_ip, private_ip или name
+#groups:
+#  db: "'postgres' in name"  # группирование хостов по именам
+keyed_groups:
+  - key: labels['type']
+    separator: ''    
+compose:
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP # внешний IP хоста
+  internal_ip:  networkInterfaces[0].networkIP  # внутренний IP хоста
+filters: []

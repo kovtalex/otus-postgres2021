@@ -1,0 +1,6 @@
+project         = "postgres2021-19850703"
+public_key_path = "~/.ssh/id_rsa.pub"
+instance_count  = 1
+instance_name   = "postgres"
+labels          = { type = "db" }
+tags            = ["postgres"]
