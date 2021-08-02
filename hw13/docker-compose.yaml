@@ -1,0 +1,137 @@
+version: "3.9"
+
+services:
+  monitor:
+    image: kovtalex/pg_auto_failover:pg13
+    container_name: monitor
+    hostname: monitor
+    environment:
+      PGDATA: /tmp/pgaf
+      PG_AUTOCTL_DEBUG: 1
+    command: ["pg_autoctl", "create", "monitor", "--ssl-self-signed", "--auth", "trust", "--run"]
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5      
+    networks:
+      - pg_auto_failover
+
+  node1:
+    image: kovtalex/pg_auto_failover:pg13
+    container_name: node1
+    hostname: node1
+    environment:
+      PGDATA: /tmp/pgaf
+      PG_AUTOCTL_DEBUG: 1
+    command: [
+    "pg_autoctl", "create", "postgres",
+    "--ssl-self-signed",
+    "--auth", "trust",
+    "--pg-hba-lan",
+    "--username", "ad",
+    "--dbname", "analytics",
+    "--monitor", "postgresql://autoctl_node@monitor/pg_auto_failover",
+    "--run"]
+    expose:
+      - 5432
+    depends_on:
+      monitor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5              
+    networks:
+      - pg_auto_failover
+
+  node2:
+    image: kovtalex/pg_auto_failover:pg13
+    container_name: node2
+    hostname: node2
+    expose:
+      - 5432
+    environment:
+      PGDATA: /tmp/pgaf
+      PG_AUTOCTL_DEBUG: 1
+    command: [
+    "pg_autoctl", "create", "postgres",
+    "--ssl-self-signed",
+    "--auth", "trust",
+    "--pg-hba-lan",
+    "--username", "ad",
+    "--dbname", "analytics",
+    "--monitor", "postgresql://autoctl_node@monitor/pg_auto_failover",
+    "--run"]
+    expose:
+      - 5432
+    depends_on:
+      monitor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5              
+    networks:
+      - pg_auto_failover
+
+  node3:
+    image: kovtalex/pg_auto_failover:pg13
+    container_name: node3    
+    hostname: node3
+    environment:
+      PGDATA: /tmp/pgaf
+      PG_AUTOCTL_DEBUG: 1
+    command: [
+    "pg_autoctl", "create", "postgres",
+    "--ssl-self-signed",
+    "--auth", "trust",
+    "--pg-hba-lan",
+    "--username", "ad",
+    "--dbname", "analytics",
+    "--monitor", "postgresql://autoctl_node@monitor/pg_auto_failover",
+    "--run"]
+    expose:
+      - 5432
+    depends_on:
+      monitor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5              
+    networks:
+      - pg_auto_failover
+      
+  app:
+    image: kovtalex/pg_auto_failover:pg13
+    container_name: app
+    hostname: app
+    environment:
+      PGDATA: /tmp/pgaf
+      PG_AUTOCTL_DEBUG: 1
+    command: [
+    "pg_autoctl", "do", "demo", "run",
+    "--username", "ad",
+    "--clients", "10",
+    "--duration", "125",
+    "--first-failover", "45",
+    "--failover-freq", "30",
+    "--monitor", "postgresql://autoctl_node@monitor/pg_auto_failover"]
+    depends_on:
+      node1:
+        condition: service_healthy
+      node2:
+        condition: service_healthy
+      node3:
+        condition: service_healthy                
+    networks:
+      - pg_auto_failover
+
+networks:
+  pg_auto_failover:
