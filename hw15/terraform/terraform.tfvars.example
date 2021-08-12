@@ -1,0 +1,2 @@
+project           = "postgres2021"
+cluster_name      = "k8s"

@@ -13,3 +13,5 @@
 - [HW11](./hw11/README.md)
 - [HW12](./hw12/README.md)
 - [HW13](./hw13/README.md)
+- [HW14](./hw14/README.md)
+- [HW15](./hw15/README.md)

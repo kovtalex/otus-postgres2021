@@ -118,9 +118,9 @@ services:
     command: [
     "pg_autoctl", "do", "demo", "run",
     "--username", "ad",
-    "--clients", "10",
-    "--duration", "125",
-    "--first-failover", "45",
+    "--clients", "1",
+    "--duration", "200",
+    "--first-failover", "10",
     "--failover-freq", "30",
     "--monitor", "postgresql://autoctl_node@monitor/pg_auto_failover"]
     depends_on:
