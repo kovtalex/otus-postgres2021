@@ -26,25 +26,12 @@ spec:
     metadata:
       labels:
         app: citus-workers
-    spec:
-      shareProcessNamespace: true    
+    spec:   
       containers:
-      - name: busybox
-        env:
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: citus-secrets
-              key: password
-        image: busybox
-        securityContext:
-          privileged: true        
-        command:
-          - /bin/sh
-          - -c
-          - until nsenter --target $(pgrep -x postgres) --mount --uts --ipc --net --pid psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done; sleep 3000;
       - name: citus-worker
         image: citusdata/citus:10.1.1-pg12
+        command: ["/entrypoint.sh"]
+        args: ["postgres"]        
         ports:
         - containerPort: 5432
         env:
@@ -63,11 +50,19 @@ spec:
         volumeMounts:
         - name: storage
           mountPath: /var/lib/postgresql/data
+        - name: entrypoint
+          mountPath: /entrypoint.sh
+          subPath: entrypoint.sh
         livenessProbe:
           exec:
             command:
             - ./pg_healthcheck
           initialDelaySeconds: 60
+      volumes:
+        - name: entrypoint
+          configMap:
+            name: entrypoint
+            defaultMode: 0775
   volumeClaimTemplates:
   - metadata:
       name: storage

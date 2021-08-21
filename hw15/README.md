@@ -41,7 +41,7 @@ gke-k8s-default-node-pool-d01d8c1f-xn99   Ready    <none>   2m38s   v1.20.9-gke.
 - деплоим в GKE кластер CitusDB pg12 состоящий из одного мастера и трех воркер нод (используем образ citus:10.1.1-pg12)
 
 ```bash
-kubectl apply -f secrets.yaml -f master.yaml -f workers.yaml
+kubectl apply -f secrets.yaml -f entrypoint.yaml -f master.yaml -f workers.yaml
 ```
 
 - посмотрим список подов (мастера и воркеры у нас стейтфулсет)
@@ -73,25 +73,98 @@ SELECT * FROM master_get_active_worker_nodes();
 (3 rows)
 ```
 
-> Для того чтобы воркеры добавлялись к мастеру по hostname был доработан манифест пода, не секурно и костыль в виде сайдкар контейнера, зато надежно в случает потери gke preemptible ноды
+> Для того чтобы воркеры добавлялись к мастеру по hostname был доработан манифест пода заменой entrypoint из configMap содержащего данный entrypoint
+
+entrypoint.yaml
 
 ```yaml
-      shareProcessNamespace: true    
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: entrypoint
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+    until psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done &
+    exec /usr/local/bin/docker-entrypoint.sh "$@"
+```
+
+workers.yaml
+
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: citus-workers
+  labels:
+    app: citus-workers
+spec:
+  selector:
+    app: citus-workers
+  clusterIP: None
+  ports:
+  - port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: citus-worker
+spec:
+  selector:
+    matchLabels:
+      app: citus-workers
+  serviceName: citus-workers
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: citus-workers
+    spec:   
       containers:
-      - name: busybox
+      - name: citus-worker
+        image: citusdata/citus:10.1.1-pg12
+        command: ["/entrypoint.sh"]  # Новый entrypoint
+        args: ["postgres"]           # cmd
+        ports:
+        - containerPort: 5432
         env:
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
               name: citus-secrets
               key: password
-        image: busybox
-        securityContext:
-          privileged: true        
-        command:
-          - /bin/sh
-          - -c
-          - until nsenter --target $(pgrep -x postgres) --mount --uts --ipc --net --pid psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done; sleep 3000;
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: citus-secrets
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: storage
+          mountPath: /var/lib/postgresql/data
+        - name: entrypoint           # Монтируем volume с entrypoint в корень контейнера
+          mountPath: /entrypoint.sh
+          subPath: entrypoint.sh
+        livenessProbe:
+          exec:
+            command:
+            - ./pg_healthcheck
+          initialDelaySeconds: 60
+      volumes:
+        - name: entrypoint           # volume из configMap с entrypoint
+          configMap:
+            name: entrypoint
+            defaultMode: 0775
+  volumeClaimTemplates:
+  - metadata:
+      name: storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
 ```
 
 - далее подготовим наш бакет с чикагским такси и разрешим публичный доступ ко всем csv файлам
