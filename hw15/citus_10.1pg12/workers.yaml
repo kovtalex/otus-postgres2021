@@ -30,8 +30,8 @@ spec:
       containers:
       - name: citus-worker
         image: citusdata/citus:10.1.1-pg12
-        command: ["/entrypoint.sh"]
-        args: ["postgres"]        
+        command: ["/entrypoint.sh"]  # Новый entrypoint
+        args: ["postgres"]           # обязательно cmd
         ports:
         - containerPort: 5432
         env:
@@ -50,7 +50,7 @@ spec:
         volumeMounts:
         - name: storage
           mountPath: /var/lib/postgresql/data
-        - name: entrypoint
+        - name: entrypoint           # Монтируем volume с entrypoint в корень контейнера
           mountPath: /entrypoint.sh
           subPath: entrypoint.sh
         livenessProbe:
@@ -59,7 +59,7 @@ spec:
             - ./pg_healthcheck
           initialDelaySeconds: 60
       volumes:
-        - name: entrypoint
+        - name: entrypoint           # volume из configMap с entrypoint
           configMap:
             name: entrypoint
             defaultMode: 0775

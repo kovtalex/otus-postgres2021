@@ -125,7 +125,7 @@ spec:
       - name: citus-worker
         image: citusdata/citus:10.1.1-pg12
         command: ["/entrypoint.sh"]  # Новый entrypoint
-        args: ["postgres"]           # cmd
+        args: ["postgres"]           # обязательно cmd
         ports:
         - containerPort: 5432
         env:
