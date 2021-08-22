@@ -73,98 +73,18 @@ SELECT * FROM master_get_active_worker_nodes();
 (3 rows)
 ```
 
-> Для того чтобы воркеры добавлялись к мастеру по hostname был доработан манифест пода заменой entrypoint из configMap содержащего данный entrypoint
-
-entrypoint.yaml
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: entrypoint
-data:
-  entrypoint.sh: |-
-    #!/bin/bash
-    until psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done &
-    exec /usr/local/bin/docker-entrypoint.sh "$@"
-```
+> Для того чтобы воркеры добавлялись к мастеру по hostname был доработан манифест пода добавлением PostStart хука
 
 workers.yaml
 
 ```yaml
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: citus-workers
-  labels:
-    app: citus-workers
-spec:
-  selector:
-    app: citus-workers
-  clusterIP: None
-  ports:
-  - port: 5432
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: citus-worker
-spec:
-  selector:
-    matchLabels:
-      app: citus-workers
-  serviceName: citus-workers
-  replicas: 3
-  template:
-    metadata:
-      labels:
-        app: citus-workers
-    spec:   
-      containers:
-      - name: citus-worker
-        image: citusdata/citus:10.1.1-pg12
-        command: ["/entrypoint.sh"]  # Новый entrypoint
-        args: ["postgres"]           # обязательно cmd
-        ports:
-        - containerPort: 5432
-        env:
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: citus-secrets
-              key: password
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: citus-secrets
-              key: password
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
-        volumeMounts:
-        - name: storage
-          mountPath: /var/lib/postgresql/data
-        - name: entrypoint           # Монтируем volume с entrypoint в корень контейнера
-          mountPath: /entrypoint.sh
-          subPath: entrypoint.sh
-        livenessProbe:
-          exec:
-            command:
-            - ./pg_healthcheck
-          initialDelaySeconds: 60
-      volumes:
-        - name: entrypoint           # volume из configMap с entrypoint
-          configMap:
-            name: entrypoint
-            defaultMode: 0775
-  volumeClaimTemplates:
-  - metadata:
-      name: storage
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
+        lifecycle:
+          postStart:
+            exec:
+              command: 
+              - /bin/sh
+              - -c
+              - until psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done &
 ```
 
 - далее подготовим наш бакет с чикагским такси и разрешим публичный доступ ко всем csv файлам

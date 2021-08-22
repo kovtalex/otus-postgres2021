@@ -26,12 +26,17 @@ spec:
     metadata:
       labels:
         app: citus-workers
-    spec:   
+    spec:
       containers:
       - name: citus-worker
-        image: citusdata/citus:10.1.1-pg12
-        command: ["/entrypoint.sh"]  # Новый entrypoint
-        args: ["postgres"]           # обязательно cmd
+        image: citusdata/citus:10.1-pg12
+        lifecycle:
+          postStart:
+            exec:
+              command: 
+              - /bin/sh
+              - -c
+              - until psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);"; do sleep 1; done &
         ports:
         - containerPort: 5432
         env:
@@ -50,19 +55,11 @@ spec:
         volumeMounts:
         - name: storage
           mountPath: /var/lib/postgresql/data
-        - name: entrypoint           # Монтируем volume с entrypoint в корень контейнера
-          mountPath: /entrypoint.sh
-          subPath: entrypoint.sh
         livenessProbe:
           exec:
             command:
             - ./pg_healthcheck
           initialDelaySeconds: 60
-      volumes:
-        - name: entrypoint           # volume из configMap с entrypoint
-          configMap:
-            name: entrypoint
-            defaultMode: 0775
   volumeClaimTemplates:
   - metadata:
       name: storage
