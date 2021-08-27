@@ -120,7 +120,7 @@ SELECT txid_current(), pg_backend_pid();
 update test set i = 5 where i = 1;
 ```
 
-- проверим наш лог пострес на налилие информации о блокировках
+- проверим наш лог postgres на наличие информации о блокировках
 
 ```bash
 cat /var/log/postgresql/postgresql-13-main.log
